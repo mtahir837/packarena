@@ -1,7 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import Header from '@/components/common/header';
 // import Footer from '@/components/common/footer';
 
 function Custom404() {
@@ -24,7 +23,7 @@ function Custom404() {
           <div className="absolute bottom-20 right-20 w-40 h-40 bg-[#764ba2] rounded-full blur-3xl"></div>
         </div>
 
-        <Header />
+        {/* Intentionally not rendering the site header/footer to avoid stacking homepage content above the 404 screen */}
 
         {/* Center Content */}
         <div className="h-[100vh] flex-grow flex items-center justify-center relative z-10 px-6 text-center">

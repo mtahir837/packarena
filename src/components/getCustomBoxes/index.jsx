@@ -3,14 +3,14 @@ import Link from 'next/link';
 
 const GetCustomBoxes = () => {
   const boxTypes = [
-    { name: "Mailer Boxes", image: "/images/getCustomBoxes/mailer-boxes.webp" },
-    { name: "Candle Boxes", image: "/images/getCustomBoxes/candle-boxes.webp" },
-    { name: "Display Boxes", image: "/images/getCustomBoxes/display-boxes.webp" },
-    { name: "Pillow Boxes", image: "/images/getCustomBoxes/pillow-boxes.webp" },
-    { name: "Soap Boxes", image: "/images/getCustomBoxes/soap-boxes.webp" },
-    { name: "Cardboard Boxes", image: "/images/getCustomBoxes/cardboard-boxes.webp" },
-    { name: "Sleeve Boxes", image: "/images/getCustomBoxes/sleeve-boxes.webp" },
-    { name: "Lipstick Boxes", image: "/images/getCustomBoxes/lipstick-boxes.webp" }
+    { name: "Mailer Boxes", image: "/images/customProducts/mailer-Boxes.webp" },
+    { name: "Candle Boxes", image: "/images/customProducts/Candle-Boxes.webp" },
+    { name: "Display Boxes", image: "/images/customProducts/Display-Boxes.webp" },
+    { name: "Pillow Boxes", image: "/images/customProducts/pillow-Boxes.webp" },
+    { name: "Soap Boxes", image: "/images/customProducts/Soap-Boxes.webp" },
+    { name: "Cardboard Boxes", image: "/images/customProducts/Cardboard-Boxes.webp" },
+    { name: "Sleeve Boxes", image: "/images/customProducts/Sleeves-Boxes.webp" },
+    { name: "Lipstick Boxes", image: "/images/customProducts/Lipstick-Boxes.webp" }
   ];
 
   return (
@@ -55,7 +55,7 @@ const GetCustomBoxes = () => {
 
               {/* Learn More Link */}
               <Link href={`/boxes/${box.name.toLowerCase().replace(/\s+/g, '-')}`}>
-                <span className="text-[#8B4513] font-medium hover:underline cursor-pointer">
+                <span className="text-[#6f744f] font-medium hover:underline cursor-pointer">
                   Learn more &gt;
                 </span>
               </Link>

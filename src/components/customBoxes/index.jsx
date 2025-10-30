@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 
 const CustomBoxes = () => {
   const boxTypes = [
@@ -21,14 +22,17 @@ const CustomBoxes = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {boxTypes.map((box, index) => (
-            <div key={index} className=" rounded-lg  overflow-hidden">
-              <img src={box.image} alt={box.name} className="w-full h-64 object-cover" />
-              <div className="p-6 text-center">
-                <h3 className="text-xl font-semibold text-gray-800">{box.name}</h3>
-              </div>
-            </div>
-          ))}
+          {boxTypes.map((box, index) => {
+            const slug = box.name.toLowerCase().replace(/\s+/g, '-');
+            return (
+              <Link key={index} href={`/product/${slug}`} className="rounded-lg overflow-hidden block group">
+                <img src={box.image} alt={box.name} className="w-full h-64 object-cover group-hover:opacity-95 transition" />
+                <div className="p-6 text-center">
+                  <h3 className="text-xl font-semibold text-gray-800 group-hover:text-[#6f744f]">{box.name}</h3>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
