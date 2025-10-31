@@ -5,6 +5,7 @@ import Head from "next/head";
 import { Toaster } from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { Router } from "next/router";
+import { AuthProvider } from "@/utils/useAuth";
 
 const Loader = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
@@ -32,16 +33,16 @@ export default function App({ Component, pageProps }) {
   }, []);
 
   return (
-    <>
+    <AuthProvider>
       <Head>
-        <link rel="icon" href="/footer_techtrek.svg" />
+        <link rel="icon" href="/images/head-logo.PNG" />
       </Head>
       <div>
         {loading && <Loader />}
         <Component {...pageProps} />
         <Toaster position="top-right" reverseOrder={false} />
       </div>
-    </>
+    </AuthProvider>
   );
 }
 

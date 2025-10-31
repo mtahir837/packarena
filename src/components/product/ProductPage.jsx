@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const TabButton = ({ active, children, onClick }) => (
   <button
@@ -57,14 +57,20 @@ const QuoteForm = () => (
 
 const ProductPage = ({ product }) => {
   const [activeIdx, setActiveIdx] = useState(0);
-  const [selectedImg, setSelectedImg] = useState(product.images?.[0]);
+  const [selectedImg, setSelectedImg] = useState(product?.images?.[0]);
+
+  // Update selected image when product changes
+  useEffect(() => {
+    if (product?.images?.[0]) {
+      setSelectedImg(product.images[0]);
+    }
+  }, [product]);
 
   const tabs = [
     { title: 'Description', content: (
       <div className="prose max-w-none text-gray-700">
         <p>
-          Experience premium packaging tailored for your brand. We specialize in custom printed boxes with precise sizing,
-          eco-friendly materials, and luxurious finishes.
+          {product.description || 'Experience premium packaging tailored for your brand. We specialize in custom printed boxes with precise sizing, eco-friendly materials, and luxurious finishes.'}
         </p>
       </div>
     ) },

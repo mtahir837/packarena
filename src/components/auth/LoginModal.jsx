@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/config/api';
+import toast from 'react-hot-toast';
 
-const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => {
+const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword, onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -29,10 +32,110 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
     }, 300);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login:', { email, password });
+    e.stopPropagation();
+    toast.dismiss();
+    if (!email || !password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      let response;
+      
+      // Make API call
+      try {
+        response = await fetch(`${API_BASE_URL}/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+      } catch (fetchError) {
+        // Network error - don't throw, just show toast
+        toast.error('Network error. Please check your connection.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Parse JSON response safely
+      let result;
+      try {
+        const text = await response.text();
+        result = text ? JSON.parse(text) : {};
+      } catch (jsonError) {
+        // JSON parsing error - don't throw, just show toast
+        toast.error('Invalid response from server. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Handle error response from API
+      if (!response.ok) {
+        // API returned an error (like invalid credentials) - don't throw, just show toast
+        const errorMessage = result.message || result.error || 'Invalid email or password';
+        toast.error(errorMessage);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check if user is verified before allowing login
+      if (result.user && result.user.isVerified === false) {
+        toast.error('Please verify your email first before logging in.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Also check if response has isVerified field directly (in case user is not in result.user)
+      if (result.isVerified === false) {
+        toast.error('Please verify your email first before logging in.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Success - Store user data and token in localStorage
+      if (result.user) {
+        try {
+          localStorage.setItem('user', JSON.stringify(result.user));
+          if (result.token) {
+            localStorage.setItem('token', result.token);
+          }
+          
+          // Dispatch event to notify auth context and other components
+          window.dispatchEvent(new Event('auth-change'));
+          
+          toast.success('Login successful!');
+          
+          // Close modal and notify parent
+          handleCloseAnimation();
+          if (onLoginSuccess) {
+            onLoginSuccess(result.user);
+          }
+          
+          // Reset form
+          setEmail('');
+          setPassword('');
+        } catch (storageError) {
+          // Storage error - don't throw, just show toast
+          console.error('Storage error:', storageError);
+          toast.error('Failed to save login data. Please try again.');
+        }
+      } else {
+        // Invalid response - don't throw, just show toast
+        toast.error('Invalid response from server. Please try again.');
+      }
+    } catch (error) {
+      // Catch any other unexpected errors - don't rethrow, just show toast
+      console.error('Login error:', error);
+      const errorMessage = error?.message || 'Login failed. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen && !isVisible) return null;
@@ -137,9 +240,10 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
               {/* Login Button */}
               <button
                 type="submit"
-                className="w-full bg-[#808654] text-white font-bold py-3 rounded-lg hover:opacity-90 transition uppercase"
+                disabled={isSubmitting}
+                className="w-full bg-[#808654] text-white font-bold py-3 rounded-lg hover:opacity-90 transition uppercase disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                LOGIN
+                {isSubmitting ? 'LOGGING IN...' : 'LOGIN'}
               </button>
 
               {/* Create Account */}

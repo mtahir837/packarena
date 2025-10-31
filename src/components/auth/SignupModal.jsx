@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/config/api';
+import toast from 'react-hot-toast';
 
-const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
+const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onSignupSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -11,12 +13,21 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
   const [newsletter, setNewsletter] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
       setIsClosing(false);
       document.body.style.overflow = 'hidden';
+      // Reset form when modal opens
+      setFormData({
+        name: '',
+        email: '',
+        password: ''
+      });
+      setTerms(false);
+      setNewsletter(false);
     } else {
       handleCloseAnimation();
     }
@@ -34,17 +45,153 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     }, 300);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle signup logic here
-    console.log('Signup:', { ...formData, terms, newsletter });
+    
+    // Validate form
+    if (!formData.name || !formData.email || !formData.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      let response;
+      
+      // Make API call
+      try {
+        response = await fetch(`${API_BASE_URL}/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+          }),
+        });
+      } catch (fetchError) {
+        // Network error
+        toast.error('Cannot connect to server. Please check if backend is running.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Parse JSON response safely
+      let result;
+      let text = '';
+      
+      try {
+        text = await response.text();
+        
+        // Check if response is empty
+        if (!text || text.trim() === '') {
+          toast.error('Server returned empty response. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // Check if response is HTML (error page) - this prevents JSON parse error
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          toast.error(`Backend server error (${response.status}). Please check your backend server.`);
+          console.error('Received HTML instead of JSON:', text.substring(0, 200));
+          setIsSubmitting(false);
+          return;
+        }
+        
+        
+      } catch (textError) {
+        // Error reading response text
+        console.error('Error reading response:', textError);
+        toast.error('Failed to read server response. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Handle error response from API
+      if (!response.ok) {
+        const errorMessage = result.message || result.error || `Signup failed (Status: ${response.status})`;
+        toast.error(errorMessage);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Signup successful - check if user needs verification
+      if (result.user) {
+        if (result.user.isVerified === false) {
+          toast.success(
+            'Account created! Please check your email and click the verification link to activate your account.',
+            { duration: 6000 }
+          );
+        } else {
+          toast.success('Account created successfully!');
+        }
+      } else {
+        // If user object not in response, check message
+        if (result.message?.toLowerCase().includes('verify') || result.verifyToken) {
+          toast.success(
+            'Account created! Please check your email and click the verification link to activate your account.',
+            { duration: 6000 }
+          );
+        } else {
+          toast.success('Account created successfully!');
+        }
+      }
+      
+      // Close modal and notify parent
+      handleCloseAnimation();
+      
+      // Optionally auto-login or switch to login
+      if (onSignupSuccess) {
+        onSignupSuccess(result.user || result);
+      } else if (onSwitchToLogin) {
+        // Auto-switch to login after successful signup
+        setTimeout(() => {
+          onSwitchToLogin();
+        }, 300);
+      }
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        password: ''
+      });
+      setTerms(false);
+      setNewsletter(false);
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error(error.message || 'Signup failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value
+    }));
+  };
+
+  // Handle autofill events separately
+  const handleAutoFill = (e) => {
+    const { name, value } = e.target;
+    if (value && value !== formData[name]) {
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: value
+      }));
+    }
   };
 
   if (!isOpen && !isVisible) return null;
@@ -91,8 +238,9 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                   type="text"
                   name="name"
                   placeholder="Name"
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={handleChange}
+                  autoComplete="name"
                   className="w-full bg-[#2a2a2a] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-[#808654]"
                   required
                 />
@@ -104,8 +252,11 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                   type="email"
                   name="email"
                   placeholder="Email address"
-                  value={formData.email}
+                  value={formData.email || ''}
                   onChange={handleChange}
+                  onInput={handleAutoFill}
+                  onBlur={handleAutoFill}
+                  autoComplete="email"
                   className="w-full bg-[#2a2a2a] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:border-[#808654]"
                   required
                 />
@@ -117,8 +268,10 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   placeholder="Password"
-                  value={formData.password}
+                  value={formData.password || ''}
                   onChange={handleChange}
+                  onInput={handleAutoFill}
+                  autoComplete="new-password"
                   className="w-full bg-[#2a2a2a] border border-gray-600 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:border-[#808654]"
                   required
                 />
@@ -148,9 +301,10 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
               {/* Create Account Button */}
               <button
                 type="submit"
-                className="w-full bg-[#808654] text-white font-bold py-3 rounded-lg hover:opacity-90 transition uppercase"
+                disabled={isSubmitting}
+                className="w-full bg-[#808654] text-white font-bold py-3 rounded-lg hover:opacity-90 transition uppercase disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                CREATE AN ACCOUNT
+                {isSubmitting ? 'CREATING ACCOUNT...' : 'CREATE AN ACCOUNT'}
               </button>
 
               {/* Sign In Link */}

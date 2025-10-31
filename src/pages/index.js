@@ -10,10 +10,13 @@ import GetCustomBoxes from "@/components/getCustomBoxes";
 import MadeEasy from "@/components/madeEasy";
 import TopHeader from "@/components/topHeader";
 import Works from "@/components/works";
+import { useCategories } from "@/utils/useCategories";
 
 import Head from "next/head";
 
 export default function Home() {
+  // Fetch categories and log to console
+
   return (
     <>
       <Head>
